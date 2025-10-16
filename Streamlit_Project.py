@@ -1,10 +1,13 @@
 import streamlit as st
+import pandas as pd
+from PIL import Image
 
 
 Menu = st.sidebar.radio("Menu",["Form","CSV Uploader","Image Gallery"])
 
 
 if Menu == "Form":
+
     st.title("User Information Form")
     
     with st.form("my_form"):
@@ -36,10 +39,64 @@ if Menu == "Form":
                 st.markdown(":red[please accept the Terms and Condition...]")
 
 
-if Menu == "CSV Uploader":
-    form = st.form("my_form2")
-    form.slider("Inside the form")
-    st.slider("Outside the form")
+elif Menu == "CSV Uploader":
+    st.title("CSV Uploader & Interactive Table")
+    csv_uploaded = st.file_uploader(label="Upload CSV", type='CSV', help="open a csv file!")
 
-    # Now add a submit button to the form:
-    form.form_submit_button("Submit")
+    def search_in_df(df, keyword):
+        keyword = str(keyword).lower().strip()
+        if not keyword:
+            return df  # اگر جستجو خالی بود، دیتافریم اصلی را برگردان
+        matched_rows = []
+        for i, row in df.iterrows():
+            for col in df.columns:
+                cell_value = str(row[col]).lower()
+                if keyword in cell_value:
+                    matched_rows.append(i)
+                    break
+        return df.loc[matched_rows]
+
+    def show_df_result(df):
+        row_count = df.shape[0]
+        page_count = max(1, (row_count - 1) // 10 + 1)  # حداقل یک صفحه وجود دارد
+        page_number = st.slider(label="Select Page", min_value=1, max_value=page_count, value=1)
+        df_row_start, df_row_end = (page_number - 1) * 10, page_number * 10
+        st.dataframe(df.iloc[df_row_start:df_row_end], selection_mode="single-row")
+
+    if csv_uploaded:
+        df = pd.read_csv(csv_uploaded)
+        st.write("Data Table")
+
+        search_item = st.text_input(label="Search")
+        sort_by_column = st.selectbox(label="Sort by Column:", options=df.columns)
+        df_sorted = df.sort_values(by=sort_by_column)
+
+        # اگر چیزی در سرچ نوشته شده بود، دیتافریم فیلترشده را بگیر
+        df_to_show = search_in_df(df_sorted, search_item)
+        show_df_result(df_to_show)
+
+        
+elif Menu == "Image Gallery":
+    st.title("Image Galley")
+
+    image_files = st.file_uploader(label="open an image",type=["jpg", "jpeg", "ong"],accept_multiple_files=True)
+
+    if image_files:
+
+        cols = st.columns(len(image_files))
+        
+        for i , file in enumerate(image_files):
+            img = Image.open(file)
+            img.thumbnail((150,150))
+
+            with cols[i]:
+                st.image(img)
+
+
+
+
+
+
+    
+
+
